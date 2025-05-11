@@ -68,7 +68,7 @@ const Home = ({ category, searchQuery }) => {
   };
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 md:px-5 pt-12 sm:pt-16 md:pt-24">
+    <div className="container mx-auto px-3 sm:px-4 md:px-5 pt-12 sm:pt-16 md:pt-24" style={{ backgroundColor: 'rgb(255, 241, 173)' }}>
       {/* Hero section */}
       <div className="my-3 sm:my-5 md:my-8">
         <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-amber-800 text-center mb-2 sm:mb-3 md:mb-6">
@@ -86,7 +86,7 @@ const Home = ({ category, searchQuery }) => {
         )}
         
         {searchQuery && (
-          <p className="text-xs sm:text-sm md:text-lg text-center text-black-600 max-w-3xl mx-auto px-2">
+          <p className="text-xs sm:text-sm md:text-lg text-center text-[rgb(255,241,173)] max-w-3xl mx-auto px-2">
             Showing articles matching your search for "{searchQuery}".
           </p>
         )}

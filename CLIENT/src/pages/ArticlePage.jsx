@@ -97,7 +97,7 @@ const ArticlePage = () => {
           <h2 className="text-2xl font-bold text-red-700 mb-4">
             Article Not Found
           </h2>
-          <p className="text-gray-700 mb-6">
+          <p className="text-[rgb(255,241,173)] mb-6">
             The article you're looking for doesn't exist or has been removed.
           </p>
         </div>

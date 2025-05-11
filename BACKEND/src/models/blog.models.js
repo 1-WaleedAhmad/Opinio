@@ -34,6 +34,10 @@ const blogSchema = new mongoose.Schema(
     image: {
       type: String,
     },
+    featured: {
+      type: Boolean,
+      default: false,
+    },
     comments: [
       {
         type: mongoose.Schema.Types.ObjectId,

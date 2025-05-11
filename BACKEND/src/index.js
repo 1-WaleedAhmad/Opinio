@@ -9,12 +9,12 @@ import './models/user.models.js';
 import './models/admin.model.js';
 import './models/blog.models.js';
 
+
 import { User } from './models/user.models.js';
-import {Blog} from './models/blog.models.js'
+import {Blog} from './models/blog.models.js';
 
 
-connectDB()
-
+connectDB();
 import express from 'express'
 import cors from 'cors';
 
@@ -66,7 +66,7 @@ app.post('/api/login', async(req,res)=>{
   })
 });app.post('/api/newBlog', async (req, res) => {
   try {
-    const { email, title, content, imageUrl, category } = req.body; // Include category here
+   const { email, title, content, imageUrl, category, featured = false } = req.body;
 
     if (!imageUrl) {
       return res.status(400).json({ error: 'Image URL is required' });
@@ -83,6 +83,7 @@ app.post('/api/login', async(req,res)=>{
       image: imageUrl,
       category, // Include the selected category
       blogger: user._id,
+      featured: featured
     });
 
     const savedBlog = await newBlog.save();
@@ -95,8 +96,9 @@ app.post('/api/login', async(req,res)=>{
     res.status(400).json({ error: err.message });
   }
 });
+// Modified API endpoints to include featured status
 
-// Fetch articles/blogs written by a user via email
+// Update this endpoint to include 'featured' in the selected fields
 app.post('/api/articles/user-by-email', async (req, res) => {
   try {
     const { email } = req.body;
@@ -113,7 +115,7 @@ app.post('/api/articles/user-by-email', async (req, res) => {
 
     const articles = await Blog.find({ blogger: user._id })
       .sort({ createdAt: -1 })
-      .select('heading category createdAt') // only send what you need
+      .select('heading category createdAt featured _id') // Added featured field
       .exec();
 
     res.status(200).json({ articles });
@@ -169,47 +171,42 @@ app.delete("/api/articles/:id",  (req, res) => {
 
 })
 
-
-
-// Update article endpoint
 app.put('/api/articles/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { heading, content, category } = req.body;
 
-    if (!heading || !content || !category) {
-      return res.status(400).json({ 
+    const article = await Blog.findById(id);
+    if (!article) {
+      return res.status(404).json({
         success: false,
-        message: 'All fields are required' 
+        message: 'Article not found',
       });
     }
 
-    const updatedArticle = await Blog.findByIdAndUpdate(
-      id,
-      { heading, content, category },
-      { new: true, runValidators: true }
-    );
+    // Update only the provided fields
+    const { heading, content, category, featured } = req.body;
 
-    if (!updatedArticle) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Article not found' 
-      });
-    }
+    if (heading !== undefined) article.heading = heading;
+    if (content !== undefined) article.content = content;
+    if (category !== undefined) article.category = category;
+    if (featured !== undefined) article.featured = featured;
+
+    await article.save();
 
     res.status(200).json({
       success: true,
       message: 'Article updated successfully',
-      article: updatedArticle
+      article,
     });
   } catch (err) {
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: 'Server error',
-      error: err.message 
+      error: err.message,
     });
   }
 });
+
 
 // GET all articles with optional pagination, search, and category filter
 app.get('/api/articles', async (req, res) => {
@@ -248,5 +245,16 @@ app.get('/api/posts/category/:category', async (req, res) => {
     res.status(200).json(articles);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch articles by category' });
+  }
+});
+
+
+// New route to fetch only featured blogs
+app.get('/api/featured-posts', async (req, res) => {
+  try {
+    const featuredPosts = await Blog.find({ featured: true }).sort({ createdAt: -1 }).limit(10);
+    res.status(200).json(featuredPosts);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch featured posts' });
   }
 });

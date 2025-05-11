@@ -117,7 +117,7 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
               className="bg-amber-800 border-0 p-0 appearance-none cursor-pointer focus:outline-none"
               onClick={toggleSearchInput}
             >
-              <FaSearch className="text-black text-xl sm:text-2xl hover:text-gray-500 transition-colors"/>
+              <FaSearch className="text-black text-xl sm:text-2xl hover:text-[rgb(255,241,173)] transition-colors"/>
             </div>
             <div 
               className="bg-amber-800 border-0 p-0 appearance-none cursor-pointer focus:outline-none relative"

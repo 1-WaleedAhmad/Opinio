@@ -186,7 +186,7 @@ const EditArticle = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
-              <label htmlFor="heading" className="block text-gray-700 font-medium mb-2">
+              <label htmlFor="heading" className="block text-[rgb(255,241,173)] font-medium mb-2">
                 Title
               </label>
               <input
