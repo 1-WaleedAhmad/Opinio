@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
-import { Blogger } from "./bloger.models.js";
+import { User } from "./user.models.js";
 
 const commentSchema = new mongoose.Schema(
   {
     content: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -15,7 +15,8 @@ const commentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-export const Comment = mongoose.models.Comment || mongoose.model("Comment", commentSchema);
+export const Comment =
+  mongoose.models.Comment || mongoose.model("Comment", commentSchema);
 
 const blogSchema = new mongoose.Schema(
   {
@@ -23,12 +24,15 @@ const blogSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true
+      trim: true,
     },
     content: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
+    },
+    image: {
+      type: String,
     },
     comments: [
       {
@@ -38,8 +42,21 @@ const blogSchema = new mongoose.Schema(
     ],
     blogger: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Blogger",
-      required: true
+      ref: "User",
+      required: true,
+    },
+    category: {
+      type: String,
+      required: true,
+      enum: [
+        "Technology",
+        "Health",
+        "Business",
+        "Lifestyle",
+        "Sports",
+        "Entertainment",
+      ],
+      default: "Lifestyle", // Optional: set a default category
     },
   },
   { timestamps: true }
