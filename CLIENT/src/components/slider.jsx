@@ -24,7 +24,7 @@ const PostSlider = () => {
         console.error("Error fetching posts:", err);
         setError("Failed to load posts. Please try again later.");
         setLoading(false);
-        
+
         // Fallback data for development/testing
         setPosts([
           { id: 1, title: "Sample Post 1", body: "This is a sample post description for testing the slider component." },
@@ -97,7 +97,7 @@ const PostSlider = () => {
   return (
     <div className="w-full mt-4 sm:mt-6 md:mt-10 bg-amber-50 py-4 sm:py-6 md:py-8 px-3 sm:px-6 md:px-12 rounded-lg custom-slider">
       <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 md:mb-6 text-amber-800 text-center">Featured Posts</h2>
-      
+
       {/* Slider component */}
       <div className="mx-0 sm:mx-3 md:mx-6">
         <Slider {...settings}>

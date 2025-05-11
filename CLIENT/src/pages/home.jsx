@@ -86,7 +86,7 @@ const Home = ({ category, searchQuery }) => {
         )}
         
         {searchQuery && (
-          <p className="text-xs sm:text-sm md:text-lg text-center text-gray-600 max-w-3xl mx-auto px-2">
+          <p className="text-xs sm:text-sm md:text-lg text-center text-black-600 max-w-3xl mx-auto px-2">
             Showing articles matching your search for "{searchQuery}".
           </p>
         )}

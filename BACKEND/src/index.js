@@ -22,7 +22,7 @@ const app = express()
 const port = process.env.PORT
 
 app.use(cors({
-  origin: 'http://localhost:5174', // frontend origin
+  origin: 'http://localhost:5173', // frontend origin
   credentials: true
 }));
 
@@ -64,10 +64,9 @@ app.post('/api/login', async(req,res)=>{
       res.json("User not found")
     }
   })
-});
-app.post('/api/newBlog', async (req, res) => {
+});app.post('/api/newBlog', async (req, res) => {
   try {
-    const { email, title, content, imageUrl } = req.body;
+    const { email, title, content, imageUrl, category } = req.body; // Include category here
 
     if (!imageUrl) {
       return res.status(400).json({ error: 'Image URL is required' });
@@ -81,7 +80,8 @@ app.post('/api/newBlog', async (req, res) => {
     const newBlog = new Blog({
       heading: title,
       content,
-      image: imageUrl,  // Using the provided URL directly
+      image: imageUrl,
+      category, // Include the selected category
       blogger: user._id,
     });
 
@@ -95,6 +95,7 @@ app.post('/api/newBlog', async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
 // Fetch articles/blogs written by a user via email
 app.post('/api/articles/user-by-email', async (req, res) => {
   try {
@@ -237,5 +238,15 @@ app.get('/api/articles', async (req, res) => {
   } catch (err) {
     console.error("Error fetching articles:", err);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+// Get all articles in a specific category
+app.get('/api/posts/category/:category', async (req, res) => {
+  const { category } = req.params;
+  try {
+    const articles = await Blog.find({ category }).sort({ createdAt: -1 });
+    res.status(200).json(articles);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch articles by category' });
   }
 });
