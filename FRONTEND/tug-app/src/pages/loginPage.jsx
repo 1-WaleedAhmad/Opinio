@@ -1,0 +1,130 @@
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { loginStart, loginSuccess, loginFailure } from '../redux/authSlice';
+
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  const { loading, error } = useSelector(state => state.auth);
+
+  // Mock user database
+  const MOCK_USERS = [
+    {
+      id: 1,
+      name: 'Test User',
+      email: 'test@example.com',
+      password: 'password123'
+    },
+    {
+      id: 2,
+      name: 'Admin User',
+      email: 'admin@example.com',
+      password: 'admin123'
+    }
+  ];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Start login process
+    dispatch(loginStart());
+    
+    try {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Find user by email
+      const user = MOCK_USERS.find(u => u.email === email);
+      
+      // Check if user exists and password matches
+      if (!user || user.password !== password) {
+        throw new Error('Invalid email or password');
+      }
+      
+      // Create a user object without the password
+      const safeUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      };
+      
+      // Create a mock token
+      const token = `mock-jwt-token-${user.id}-${Date.now()}`;
+      
+      // Store in localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(safeUser));
+      
+      // Update Redux state
+      dispatch(loginSuccess({ user: safeUser, token }));
+      
+      // Redirect to home page after successful login
+      navigate('/');
+    } catch (error) {
+      const errorMessage = error.message || 'Login failed';
+      dispatch(loginFailure(errorMessage));
+    }
+  };
+
+  return (
+    <div className="max-w-xs sm:max-w-sm md:max-w-md mx-auto mt-6 sm:mt-8 md:mt-10 p-4 sm:p-5 md:p-6 bg-amber-50 rounded-lg shadow-md">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-amber-800 text-center">Login</h2>
+      
+      {error && (
+        <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-red-100 text-red-700 rounded text-sm sm:text-base">
+          {error}
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit}>
+        <div className="mb-3 sm:mb-4">
+          <label className="block text-amber-800 mb-1 sm:mb-2 text-sm sm:text-base" htmlFor="email">
+            Email
+          </label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-2 text-sm sm:text-base border border-amber-300 rounded focus:outline-none focus:border-amber-500"
+            required
+          />
+        </div>
+        
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-amber-800 mb-1 sm:mb-2 text-sm sm:text-base" htmlFor="password">
+            Password
+          </label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-2 text-sm sm:text-base border border-amber-300 rounded focus:outline-none focus:border-amber-500"
+            required
+          />
+        </div>
+        
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-amber-800 text-amber-800 py-2 px-4 rounded hover:bg-amber-700 transition-colors disabled:bg-amber-400 text-sm sm:text-base"
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+      </form>
+      
+      <div className="mt-4 text-center text-xs sm:text-sm text-amber-800">
+        <p>Test Credentials:</p>
+        <p className="mt-1">Email: test@example.com | Password: password123</p>
+        <p className="mt-1">Email: admin@example.com | Password: admin123</p>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
