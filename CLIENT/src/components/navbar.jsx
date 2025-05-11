@@ -146,7 +146,7 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
           
           {/* Center logo */}
           <Link to="/" className="flex items-center no-underline">
-            <h1 className="text-white text-lg sm:text-xl md:text-2xl font-bold hover:text-gray-300 transition-colors">TUG</h1>
+            <h1 className="text-white text-lg sm:text-xl md:text-2xl font-bold hover:text-gray-300 transition-colors">Opinio</h1>
           </Link>
           
           {/* Right section with buttons */}
@@ -245,7 +245,7 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
                   onClick={toggleMenu}
                 />
               </div>
-              
+            
               <div className="text-white mb-8">
                 <h2 className="text-xl font-bold mb-4 border-b border-amber-700 pb-2">Categories</h2>
                 <div className="grid grid-cols-2 gap-4">

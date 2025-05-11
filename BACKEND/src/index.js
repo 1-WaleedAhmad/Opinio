@@ -21,7 +21,11 @@ import cors from 'cors';
 const app = express()
 const port = process.env.PORT
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5174', // frontend origin
+  credentials: true
+}));
+
 app.use(express.json());
 
 
@@ -89,5 +93,149 @@ app.post('/api/newBlog', async (req, res) => {
     res.status(201).json(savedBlog);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+// Fetch articles/blogs written by a user via email
+app.post('/api/articles/user-by-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const articles = await Blog.find({ blogger: user._id })
+      .sort({ createdAt: -1 })
+      .select('heading category createdAt') // only send what you need
+      .exec();
+
+    res.status(200).json({ articles });
+  } catch (err) {
+    console.error('Error fetching articles by email:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+app.get('/api/articles/:id', async (req, res) => {
+  try {
+    const article = await Blog.findById(req.params.id)
+      .select('heading content category createdAt image blogger') // Include blogger
+      .populate('blogger', 'username') // Populate only the username
+      .exec();
+    
+    if (!article) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Article not found'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      heading: article.heading,
+      content: article.content,
+      category: article.category,
+      createdAt: article.createdAt,
+      image: article.image,
+      author: article.blogger.username // Return the username
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: err.message 
+    });
+  }
+});
+
+app.delete("/api/articles/:id",  (req, res) => {
+  const { id } = req.params;
+  Blog.findByIdAndDelete(id)
+    .then(deletedArticle => {
+      if (!deletedArticle) {
+        return res.status(404).json({ message: 'Article not found' });
+      }
+      res.status(200).json({ message: 'Article deleted successfully', deletedArticle });
+    })
+    .catch(err => res.status(500).json({ message: 'Server error', error: err.message }));
+
+})
+
+
+
+// Update article endpoint
+app.put('/api/articles/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { heading, content, category } = req.body;
+
+    if (!heading || !content || !category) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'All fields are required' 
+      });
+    }
+
+    const updatedArticle = await Blog.findByIdAndUpdate(
+      id,
+      { heading, content, category },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedArticle) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Article not found' 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Article updated successfully',
+      article: updatedArticle
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: err.message 
+    });
+  }
+});
+
+// GET all articles with optional pagination, search, and category filter
+app.get('/api/articles', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const skip = (page - 1) * limit;
+    const { search, category } = req.query;
+
+    const query = {};
+
+    if (search) {
+      query.heading = { $regex: search, $options: 'i' }; // case-insensitive
+    }
+
+    if (category) {
+      query.category = category;
+    }
+
+    const articles = await Blog.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({ articles });
+  } catch (err) {
+    console.error("Error fetching articles:", err);
+    res.status(500).json({ error: 'Server error' });
   }
 });

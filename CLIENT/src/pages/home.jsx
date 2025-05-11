@@ -1,98 +1,90 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PostSlider from '../components/slider';
-import ArticleGrid from '../components/articleGrid';
+import axios from 'axios';
 
 const Home = ({ category, searchQuery }) => {
+  const navigate = useNavigate();
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadMore, setLoadMore] = useState(false);
   const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     // Reset pagination when search query or category changes
     setPage(1);
+    setArticles([]);
     setLoadMore(false);
-    fetchArticles();
+    setHasMore(true);
+    fetchArticles(1, true);
   }, [searchQuery, category]);
 
-  const fetchArticles = async () => {
+  const fetchArticles = async (pageNum, reset = false) => {
     setLoading(true);
     
     try {
-      // This would be replaced with actual API call to fetch articles
-      // based on searchQuery (author, category, title) or category
+      let url = `http://localhost:8000/api/articles?page=${pageNum}&limit=6`;
       
-      // Simulating API call with timeout
-      setTimeout(() => {
-        // Generate mock articles based on search or category
-        const mockArticles = Array(6).fill().map((_, index) => ({
-          id: index + 1,
-          title: searchQuery 
-            ? `Article about "${searchQuery}" ${index + 1}`
-            : category 
-              ? `${category.charAt(0).toUpperCase() + category.slice(1)} Article ${index + 1}`
-              : `Featured Article ${index + 1}`,
-          excerpt: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-          readTime: Math.floor(Math.random() * 10) + 3,
-          author: "Author Name",
-          category: category || ["Technology", "Lifestyle", "Business"][Math.floor(Math.random() * 3)]
-        }));
-        
-        setArticles(mockArticles);
-        setLoading(false);
-      }, 800);
+      if (searchQuery) {
+        url += `&search=${encodeURIComponent(searchQuery)}`;
+      } else if (category) {
+        url += `&category=${encodeURIComponent(category)}`;
+      }
+
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const newArticles = response.data.articles || [];
+      
+      if (reset) {
+        setArticles(newArticles);
+      } else {
+        setArticles(prev => [...prev, ...newArticles]);
+      }
+
+      // Check if there are more articles to load
+      setHasMore(newArticles.length >= 6);
     } catch (error) {
       console.error("Error fetching articles:", error);
+    } finally {
       setLoading(false);
+      setLoadMore(false);
     }
   };
 
   const handleLoadMore = () => {
+    const nextPage = page + 1;
     setLoadMore(true);
-    setPage(prevPage => prevPage + 1);
-    
-    // Simulate loading more articles
-    setLoading(true);
-    setTimeout(() => {
-      const newArticles = Array(3).fill().map((_, index) => ({
-        id: articles.length + index + 1,
-        title: searchQuery 
-          ? `Article about "${searchQuery}" ${articles.length + index + 1}`
-          : category 
-            ? `${category.charAt(0).toUpperCase() + category.slice(1)} Article ${articles.length + index + 1}`
-            : `Featured Article ${articles.length + index + 1}`,
-        excerpt: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        readTime: Math.floor(Math.random() * 10) + 3,
-        author: "Author Name",
-        category: category || ["Technology", "Lifestyle", "Business"][Math.floor(Math.random() * 3)]
-      }));
-      
-      setArticles(prevArticles => [...prevArticles, ...newArticles]);
-      setLoading(false);
-    }, 800);
+    setPage(nextPage);
+    fetchArticles(nextPage);
+  };
+  
+  const handleReadMore = (articleId) => {
+    navigate(`/article/${articleId}`);
   };
 
   return (
     <div className="container mx-auto px-3 sm:px-4 md:px-5 pt-12 sm:pt-16 md:pt-24">
-      {/* Hero section with responsive spacing */}
+      {/* Hero section */}
       <div className="my-3 sm:my-5 md:my-8">
         <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-amber-800 text-center mb-2 sm:mb-3 md:mb-6">
           {searchQuery 
             ? `Search Results for "${searchQuery}"` 
             : category 
               ? `${category.charAt(0).toUpperCase() + category.slice(1)} Articles` 
-              : 'Welcome to TUG'}
+              : 'Welcome to '}
         </h1>
         
-        {/* Optional: Category description with responsive text size */}
         {category && !searchQuery && (
           <p className="text-xs sm:text-sm md:text-lg text-center text-gray-600 max-w-3xl mx-auto px-2">
             Explore our collection of thought-provoking articles about {category}.
-            Discover new perspectives and insights from our community of writers.
           </p>
         )}
         
-        {/* Search results description */}
         {searchQuery && (
           <p className="text-xs sm:text-sm md:text-lg text-center text-gray-600 max-w-3xl mx-auto px-2">
             Showing articles matching your search for "{searchQuery}".
@@ -100,14 +92,14 @@ const Home = ({ category, searchQuery }) => {
         )}
       </div>
       
-      {/* Featured posts slider - only show if not searching */}
+      {/* Featured posts slider */}
       {!searchQuery && (
         <div className="mb-4 sm:mb-6 md:mb-10">
           <PostSlider />
         </div>
       )}
       
-      {/* Featured Articles Section - shows search results when searching */}
+      {/* Articles Section */}
       <div className="mb-6 sm:mb-8 md:mb-16">
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-amber-800 mb-3 sm:mb-4 md:mb-6">
           {searchQuery 
@@ -125,51 +117,69 @@ const Home = ({ category, searchQuery }) => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
               {articles.map((article) => (
-                <div key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <div className="h-40 bg-amber-200"></div>
+                <div key={article._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                  {article.image && (
+                    <div className="h-40 bg-amber-200 overflow-hidden">
+                      <img 
+                        src={article.image} 
+                        alt={article.heading} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                   <div className="p-3 sm:p-4">
                     <div className="flex items-center mb-2">
                       <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
                         {article.category}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-amber-800 mb-2">{article.title}</h3>
-                    <p className="text-gray-600 text-sm mb-2">{article.excerpt}</p>
+                    <h3 className="font-semibold text-amber-800 mb-2">{article.heading}</h3>
+                    <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+                      {article.content.substring(0, 100)}...
+                    </p>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">{article.readTime} min read</span>
-                      <button className="text-amber-800 text-sm font-medium hover:text-amber-600">Read More</button>
+                      <span className="text-xs text-gray-500">
+                        {Math.ceil(article.content.length / 1000)} min read
+                      </span>
+                      <button 
+                        className="text-amber-800 text-sm font-medium hover:text-amber-600"
+                        onClick={() => handleReadMore(article._id)}
+                      >
+                        Read More
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
             
-            {/* Load More Button */}
-            <div className="flex justify-center mt-6">
-              <button 
-                onClick={handleLoadMore}
-                className="bg-amber-800 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded transition-colors"
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="flex items-center">
-                    <span className="animate-spin h-4 w-4 mr-2 border-t-2 border-b-2 border-white rounded-full"></span>
-                    Loading...
-                  </span>
-                ) : (
-                  'Load More Articles'
-                )}
-              </button>
-            </div>
+            {hasMore && (
+              <div className="flex justify-center mt-6">
+                <button 
+                  onClick={handleLoadMore}
+                  className="bg-amber-800 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded transition-colors"
+                  disabled={loading || loadMore}
+                >
+                  {loading || loadMore ? (
+                    <span className="flex items-center">
+                      <span className="animate-spin h-4 w-4 mr-2 border-t-2 border-b-2 border-white rounded-full"></span>
+                      Loading...
+                    </span>
+                  ) : (
+                    'Load More Articles'
+                  )}
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-600">No articles found. Try a different search term.</p>
+            <p className="text-gray-600">No articles found. {searchQuery ? 'Try a different search term.' : 'Check back later for new articles.'}</p>
           </div>
         )}
       </div>
       
-      {/* Community section - only show if not searching */}
+      {/* Community section */}
       {!searchQuery && (
         <div className="bg-amber-50 rounded-lg p-3 sm:p-5 md:p-8 mb-6 sm:mb-8 md:mb-16">
           <h2 className="text-lg sm:text-xl md:text-3xl font-bold text-amber-800 text-center mb-3 sm:mb-4 md:mb-6">
@@ -177,11 +187,10 @@ const Home = ({ category, searchQuery }) => {
           </h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-            {/* Feature boxes */}
             <div className="bg-white p-3 sm:p-4 md:p-5 rounded-lg shadow-sm">
               <h3 className="text-base sm:text-lg md:text-xl font-semibold text-amber-800 mb-1 sm:mb-2">Write Articles</h3>
               <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-2 sm:mb-3">
-                Share your thoughts and perspectives with our growing community of readers.
+                Share your thoughts with our community.
               </p>
               <button className="text-amber-800 font-medium text-xs sm:text-sm md:text-base hover:text-amber-600">
                 Learn More →
@@ -191,7 +200,7 @@ const Home = ({ category, searchQuery }) => {
             <div className="bg-white p-3 sm:p-4 md:p-5 rounded-lg shadow-sm">
               <h3 className="text-base sm:text-lg md:text-xl font-semibold text-amber-800 mb-1 sm:mb-2">Join Discussions</h3>
               <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-2 sm:mb-3">
-                Engage with other readers and writers in thoughtful conversations.
+                Engage in thoughtful conversations.
               </p>
               <button className="text-amber-800 font-medium text-xs sm:text-sm md:text-base hover:text-amber-600">
                 Explore Forums →
@@ -201,7 +210,7 @@ const Home = ({ category, searchQuery }) => {
             <div className="bg-white p-3 sm:p-4 md:p-5 rounded-lg shadow-sm sm:col-span-2 md:col-span-1">
               <h3 className="text-base sm:text-lg md:text-xl font-semibold text-amber-800 mb-1 sm:mb-2">Subscribe</h3>
               <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-2 sm:mb-3">
-                Get the latest articles and updates delivered directly to your inbox.
+                Get the latest articles in your inbox.
               </p>
               <div className="flex">
                 <input 
@@ -216,7 +225,6 @@ const Home = ({ category, searchQuery }) => {
             </div>
           </div>
           
-          {/* Call to action button */}
           <div className="flex justify-center mt-4 sm:mt-6 md:mt-8">
             <button className="bg-amber-800 hover:bg-amber-700 text-white font-bold py-1.5 sm:py-2 md:py-3 px-3 sm:px-4 md:px-6 rounded text-xs sm:text-sm md:text-base transition-colors">
               Explore All Features

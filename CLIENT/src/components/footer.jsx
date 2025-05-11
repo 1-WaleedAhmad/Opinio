@@ -18,7 +18,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
           {/* About Section */}
           <div className="mb-4 sm:mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3 md:mb-4 text-white">TUG</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3 md:mb-4 text-white"></h2>
             <p className="text-xs sm:text-sm md:text-base text-amber-100 mb-3 sm:mb-4 border-amber-600">
               Exploring ideas that matter through thoughtful discourse and analysis.
               Join our community of curious minds.
@@ -135,7 +135,7 @@ const Footer = () => {
       <div className="border-t border-amber-700 mt-4 sm:mt-6 md:mt-8 pt-3 sm:pt-4 md:pt-6">
         <div className="container mx-auto px-3 sm:px-4 md:px-5 flex flex-col md:flex-row justify-between items-center">
           <p className="text-amber-200 text-xxs sm:text-xs md:text-sm mb-2 md:mb-0 text-center md:text-left">
-            &copy; {new Date().getFullYear()} TUG. All rights reserved.
+            &copy; {new Date().getFullYear()} . All rights reserved.
           </p>
           <div className="flex space-x-3 sm:space-x-4 md:space-x-6 text-center">
             {/* Uncomment when you have these routes */}

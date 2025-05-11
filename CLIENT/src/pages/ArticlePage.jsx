@@ -1,126 +1,197 @@
-import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
+import {
+  Calendar,
+  Clock,
+  User,
+  Tag,
+  ChevronLeft,
+  Share2,
+  ThumbsUp,
+} from "lucide-react";
+
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return "https://via.placeholder.com/800x400?text=No+Image"; // Fallback image
+  return imagePath.startsWith("http")
+    ? imagePath
+    : `http://localhost:8000/${imagePath}`; // Convert relative path to full URL
+};
 
 const ArticlePage = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // Get article ID from URL params
+
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [liked, setLiked] = useState(false);
+  const [relatedArticles, setRelatedArticles] = useState([]);
 
   useEffect(() => {
-    console.log("Article ID from params:", id); // Debug log
-    setLoading(true);
-    
-    // Try to fetch the article data
-    axios
-      .get(`http://localhost:8000/api/posts/${id}`)
-      .then((res) => {
-        console.log("API response:", res.data); // Debug log
-        setArticle(res.data);
+    const fetchArticle = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `http://localhost:8000/api/articles/${id}`
+        ); // Fetch article data
+        setArticle(response.data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching article:", err); // Log detailed error information
+        if (err.response && err.response.status === 404) {
+          setError("The requested article was not found.");
+        } else {
+          setError("Failed to fetch article data. Please try again later.");
+        }
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching article:", err);
-        setError("Failed to load article. Please try again later.");
-        setLoading(false);
-        
-        // Always use fallback data for now to ensure something displays
-        const fallbackArticle = {
-          id: id || 1,
-          title: "Sample Article Title",
-          author: {
-            id: 101,
-            name: "John Doe"
-          },
-          image: "https://via.placeholder.com/600x400",
-          content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in dui mauris. Vivamus hendrerit arcu sed erat molestie vehicula. Sed auctor neque eu tellus rhoncus ut eleifend nibh porttitor. Ut in nulla enim. Phasellus molestie magna non est bibendum non venenatis nisl tempor. Suspendisse dictum feugiat nisl ut dapibus. Mauris iaculis porttitor posuere. Praesent id metus massa, ut blandit odio. Proin quis tortor orci. Etiam at risus et justo dignissim congue. Donec congue lacinia dui, a porttitor lectus condimentum laoreet. Nunc eu ullamcorper orci. Quisque eget odio ac lectus vestibulum faucibus eget in metus. In pellentesque faucibus vestibulum. Nulla at nulla justo, eget luctus tortor. Nulla facilisi. Duis aliquet egestas purus in blandit. Curabitur vulputate, ligula lacinia scelerisque tempor, lacus lacus ornare ante, ac egestas est urna sit amet arcu. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos."
-        };
-        console.log("Using fallback data:", fallbackArticle); // Debug log
-        setArticle(fallbackArticle);
-      });
+      }
+    };
+
+    fetchArticle();
   }, [id]);
 
-  // Add debug rendering to see what's happening
-  console.log("Current state:", { loading, error, article });
+  const toggleLike = () => {
+    setLiked(!liked);
+  };
 
-  if (loading && !article) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="w-full bg-amber-50 py-8 px-4 rounded-lg text-center">
-          <p className="text-amber-800">Loading article {id}...</p>
+  const renderLoadingState = () => (
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-amber-50 p-6 rounded-lg shadow-md">
+          <div className="animate-pulse">
+            <div className="h-8 bg-amber-200 rounded w-3/4 mb-4"></div>
+            <div className="h-4 bg-amber-100 rounded w-1/2 mb-6"></div>
+            <div className="h-64 bg-amber-100 rounded mb-6"></div>
+            <div className="space-y-3">
+              <div className="h-4 bg-amber-100 rounded"></div>
+              <div className="h-4 bg-amber-100 rounded"></div>
+              <div className="h-4 bg-amber-100 rounded"></div>
+              <div className="h-4 bg-amber-100 rounded w-5/6"></div>
+            </div>
+          </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error && !article) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="w-full bg-red-50 py-8 px-4 rounded-lg text-center">
-          <p className="text-red-600">{error}</p>
+  const renderErrorState = () => (
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-red-50 p-8 rounded-lg shadow-md text-center">
+          <h2 className="text-2xl font-bold text-red-700 mb-2">
+            Oops! Something went wrong
+          </h2>
+          <p className="text-red-600 mb-4">{error}</p>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 
-  // Safety check to ensure article exists before rendering
+  if (loading) return renderLoadingState();
+  if (error) return renderErrorState();
   if (!article) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="w-full bg-red-50 py-8 px-4 rounded-lg text-center">
-          <p className="text-red-600">Article not found</p>
+      <div className="container mx-auto px-4 py-8 text-center">
+        <div className="max-w-3xl mx-auto bg-red-50 p-8 rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold text-red-700 mb-4">
+            Article Not Found
+          </h2>
+          <p className="text-gray-700 mb-6">
+            The article you're looking for doesn't exist or has been removed.
+          </p>
         </div>
       </div>
     );
   }
 
+  const formattedDate = new Date(article.createdAt).toLocaleDateString(
+    "en-US",
+    {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }
+  );
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Top section with title, author and image */}
-      <div className="flex flex-col md:flex-row gap-8 mb-8">
-        {/* Left side - Title and author */}
-        <div className="md:w-1/2">
-          <h1 className="text-3xl font-bold text-amber-800 mb-4">{article.title}</h1>
-          <p className="text-gray-700">
-            By{" "}
-            <Link 
-              to={`/author/${article.author?.id || 'unknown'}`} 
-              className="text-amber-600 hover:text-amber-800 hover:underline"
-            >
-              {article.author?.name || 'Unknown Author'}
-            </Link>
-          </p>
-        </div>
-        
-        {/* Right side - Article image */}
-        <div className="md:w-1/2">
-          <img 
-            src={article.image || "https://via.placeholder.com/600x400"} 
-            alt={article.title} 
-            className="w-full h-auto rounded-lg shadow-md"
-          />
-        </div>
+    <div className="bg-amber-50 min-h-screen pb-12">
+      <div className="w-full h-64 md:h-96 bg-amber-800 relative overflow-hidden">
+        <img
+          src={article.image}
+          alt={article.heading}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-amber-900 to-transparent opacity-70"></div>
       </div>
-      
-      {/* Article content */}
-      <div className="mt-8">
-        <div className="prose prose-amber max-w-none text-center">
-          {(article.content || "No content available").split('\n').map((paragraph, index) => (
-            <p key={index} className="mb-4 text-gray-800">
-              {paragraph}
-            </p>
-          ))}
+
+      <div className="container mx-auto px-4">
+        {/* <div className="max-w-3xl mx-auto -mt-8 mb-6 relative z-10">
+          <div className="bg-white shadow-md rounded-lg p-4 flex items-center text-sm">
+            <span className="text-gray-600 truncate">{article.heading}</span>
+          </div>
+        </div> */}
+
+        <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="p-6 md:p-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {article.heading}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4 mb-6 text-sm text-gray-600">
+              <div className="flex items-center">
+                <User size={16} className="mr-1 text-amber-600" />
+                <span>{article.author}</span>
+              </div>
+              <div className="flex items-center">
+                <Calendar size={16} className="mr-1 text-amber-600" />
+                <span>{formattedDate}</span>
+              </div>
+              <div className="flex items-center">
+                <Clock size={16} className="mr-1 text-amber-600" />
+                <span>
+                  {new Date(article.createdAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
+              </div>
+              <div className="flex items-center">
+                <Tag size={16} className="mr-1 text-amber-600" />
+                <span className="capitalize">
+                  {article.category || "uncategorized"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-gray-100">
+              <button
+                onClick={toggleLike}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition ${
+                  liked
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-gray-100 text-gray-600 hover:bg-amber-50 hover:text-amber-600"
+                }`}
+              >
+                <ThumbsUp size={16} className={liked ? "fill-amber-500" : ""} />
+                {liked ? "Liked" : "Like"}
+              </button>
+            </div>
+
+            <div className="prose prose-amber max-w-none">
+              {(article.content || "").split("\n").map((paragraph, index) => (
+                <p
+                  key={index}
+                  className={`mb-4 text-gray-700 leading-relaxed ${
+                    index === 0 ? "text-lg font-medium" : ""
+                  }`}
+                >
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-      
-      {/* Subscription CTA */}
-      <div className="mt-16 text-center">
-        <Link to="/subscribe" className="inline-block">
-          <p className="text-amber-700 text-lg font-medium hover:text-amber-900 underline">
-            If you enjoyed this, you can subscribe
-          </p>
-        </Link>
       </div>
     </div>
   );
