@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { FaSpinner, FaSave } from 'react-icons/fa';
+import { FaSpinner, FaSave, FaTimes } from 'react-icons/fa';
 
 const EditArticle = () => {
   const { articleId } = useParams();
@@ -9,22 +9,21 @@ const EditArticle = () => {
   const { isLoggedIn } = useSelector(state => state.auth);
   
   const [article, setArticle] = useState(null);
-  const [title, setTitle] = useState('');
+  const [heading, setHeading] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   
-  // Categories - should match the ones in navbar
   const categories = [
-    'technology', 
-    'health', 
-    'business', 
-    'lifestyle', 
-    'travel', 
-    'sports', 
-    'entertainment'
+    'Technology',
+    'Health',
+    'Business', 
+    'Lifestyle',
+    'Travel',
+    'Sports',
+    'Entertainment'
   ];
   
   // Redirect if not logged in
@@ -39,18 +38,31 @@ const EditArticle = () => {
     const fetchArticle = async () => {
       try {
         setLoading(true);
-        // Replace with your actual API call
-        const response = await fetch(`/api/articles/${articleId}`);
-        const data = await response.json();
+        setError(null);
+        
+        const response = await fetch(`http://localhost:8000/api/articles/${articleId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        const responseText = await response.text();
         
         if (!response.ok) {
-          throw new Error(data.message || 'Failed to fetch article');
+          const errorData = responseText ? JSON.parse(responseText) : {};
+          throw new Error(errorData.message || 'Failed to fetch article');
+        }
+
+        const data = responseText ? JSON.parse(responseText) : {};
+        
+        if (!data.success) {
+          throw new Error(data.message || 'Article not found');
         }
         
         setArticle(data);
-        setTitle(data.title);
-        setContent(data.content);
-        setCategory(data.category);
+        setHeading(data.heading || '');
+        setContent(data.content || '');
+        setCategory(data.category || '');
       } catch (err) {
         setError(err.message);
         console.error('Error fetching article:', err);
@@ -64,60 +76,42 @@ const EditArticle = () => {
     }
   }, [isLoggedIn, articleId]);
   
-  // Mock data for development (remove in production)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && loading) {
-      // Mock article data
-      const mockArticle = {
-        id: articleId,
-        title: 'Understanding React Hooks',
-        content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl eget ultricies tincidunt, nisl nisl aliquam nisl, eget ultricies nisl nisl eget nisl.',
-        category: 'technology',
-        featured: false,
-        createdAt: '2023-01-15'
-      };
-      
-      setTimeout(() => {
-        setArticle(mockArticle);
-        setTitle(mockArticle.title);
-        setContent(mockArticle.content);
-        setCategory(mockArticle.category);
-        setLoading(false);
-      }, 500);
-    }
-  }, [loading, articleId]);
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!title.trim() || !content.trim() || !category) {
+    if (!heading.trim() || !content.trim() || !category) {
       setError('Please fill in all fields');
       return;
     }
     
     try {
       setSaving(true);
+      setError(null);
       
-      // Replace with your actual API call
-      const response = await fetch(`/api/articles/${articleId}`, {
+      const response = await fetch(`http://localhost:8000/api/articles/${articleId}`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title,
+          heading,
           content,
           category,
         }),
       });
       
-      const data = await response.json();
+      const responseText = await response.text();
+      const data = responseText ? JSON.parse(responseText) : {};
       
       if (!response.ok) {
         throw new Error(data.message || 'Failed to update article');
       }
-      
-      // Navigate back to settings page after successful update
+
+      if (!data.success) {
+        throw new Error(data.message || 'Update failed');
+      }
+
       navigate('/settings');
     } catch (err) {
       setError(err.message);
@@ -128,105 +122,148 @@ const EditArticle = () => {
   };
   
   const handleCancel = () => {
-    navigate('/settings');
+    if (window.confirm('Are you sure you want to discard your changes?')) {
+      navigate('/settings');
+    }
   };
-  
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 mt-[80px] flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-800"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-600"></div>
+      </div>
+    );
+  }
+
+  if (error && !loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 mt-[80px]">
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-bold">Error</p>
+              <p>{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-700 hover:text-red-900"
+            >
+              <FaTimes />
+            </button>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate('/settings')}
+          className="px-6 py-3 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors duration-200"
+        >
+          Back to Settings
+        </button>
       </div>
     );
   }
   
   return (
-    <div className="container mx-auto px-4 py-8 mt-[80px]">
-      <h1 className="text-2xl md:text-3xl font-bold text-amber-800 mb-6">Edit Article</h1>
-      
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 mt-[80px]">
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Edit Article</h1>
         </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
-        <div className="mb-4">
-          <label htmlFor="title" className="block text-amber-800 font-medium mb-2">
-            Title
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-amber-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-            placeholder="Article title"
-            required
-          />
+
+        <div className="p-6">
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6">
+              <div className="flex justify-between items-center">
+                <p>{error}</p>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-red-700 hover:text-red-900"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="mb-6">
+              <label htmlFor="heading" className="block text-gray-700 font-medium mb-2">
+                Title
+              </label>
+              <input
+                type="text"
+                id="heading"
+                value={heading}
+                onChange={(e) => setHeading(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-gray-800 bg-white"
+                placeholder="Enter article title"
+                required
+              />
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="category" className="block text-gray-700 font-medium mb-2">
+                Category
+              </label>
+              <select
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-gray-800 bg-white"
+                required
+              >
+                <option value="">Select a category</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-8">
+              <label htmlFor="content" className="block text-gray-700 font-medium mb-2">
+                Content
+              </label>
+              <textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-gray-800 bg-white"
+                rows="12"
+                placeholder="Write your article content here..."
+                required
+              ></textarea>
+            </div>
+
+            <div className="flex justify-end space-x-4">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors duration-200 font-medium flex items-center"
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <FaSpinner className="animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <FaSave className="mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
-        
-        <div className="mb-4">
-          <label htmlFor="category" className="block text-amber-800 font-medium mb-2">
-            Category
-          </label>
-          <select
-            id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-3 py-2 border border-amber-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-            required
-          >
-            <option value="">Select a category</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="mb-6">
-          <label htmlFor="content" className="block text-amber-800 font-medium mb-2">
-            Content
-          </label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full px-3 py-2 border border-amber-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-            rows="12"
-            placeholder="Write your article content here..."
-            required
-          ></textarea>
-        </div>
-        
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="px-4 py-2 border border-amber-300 text-amber-800 rounded-md hover:bg-amber-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-amber-800 text-white rounded-md hover:bg-amber-700 flex items-center"
-            disabled={saving}
-          >
-            {saving ? (
-              <>
-                <FaSpinner className="animate-spin mr-2" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <FaSave className="mr-2" />
-                Save Changes
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 };
